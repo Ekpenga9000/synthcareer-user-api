@@ -1,5 +1,6 @@
-const User = require("../../models/userModel");
+const User = require("../models/userModel");
 const bcrypt = require("bcryptjs");
+const { createToken } = require("../services/security/jwtService");
 
 // Register the user
 const registerUser = async (req, res) => {
@@ -39,3 +40,41 @@ const registerUser = async (req, res) => {
 };
 
 //User login
+
+const loginUser = async (req, res) => {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+        return res.status(400).json({ message: "Please fill in all fields" });
+    }
+    
+    try {
+        const user = await User.findOne({ username });
+
+        if (!user) {
+            return res.status(400).json({ message: "Invalid Credentials" });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);  
+
+        if (!isMatch) {
+            return res.status(400).json({ message: "Invalid Credentials" });
+        }
+        
+        const { id:_id } = user;
+        
+        const payload = {id}
+        const token = createToken(payload, "1d");
+
+        res.status(200).json({ id, token });
+
+    }catch (err) {
+        console.log(err);
+        return res.status(500).json({ message: "Server Error" });
+    }
+}
+ 
+module.exports = {
+    registerUser, 
+    loginUser
+}
